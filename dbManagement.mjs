@@ -34,16 +34,16 @@ export default class dbManagement {
     }
 }
 
-    static async loginUser(connection, correo, contrasena) {
+    static async loginUser(connection, correo, contrasena, nombreRol) {
         const query = `
             SELECT u.id, u.correo, u.contrasena, r.rol as nombre_rol 
             FROM Usuario u
             JOIN Usuario_Rol ur ON u.id = ur.id_usuario
             JOIN Rol r ON ur.id_rol = r.id
-            WHERE u.correo = ?`;
+            WHERE u.correo = ? AND r.rol = ?`;
         
         try {
-            const [rows] = await connection.execute(query, [correo]);
+            const [rows] = await connection.execute(query, [correo, nombreRol]);
             if (rows.length !== 1) throw new Error('Usuario no encontrado');
 
             const user = rows[0];

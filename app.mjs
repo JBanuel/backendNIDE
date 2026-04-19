@@ -19,9 +19,9 @@ async function startServer() {
 }
 
 app.post('/login', async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, nombreRol } = req.body;
   try {
-    const user_loged = await db.loginUser(connection, email, password);
+    const user_loged = await db.loginUser(connection, email, password, nombreRol);
     res.status(200).json(user_loged);
   } catch (err) {
     res.status(401).json({ error: err.message });
