@@ -42,4 +42,32 @@ app.post('/register', async (req, res) => {
   }
 });
 
-startServer();
+app.post('/juego/addCombate', async (req, res) => {
+  const { idEstudiante, idNPC, preguntasHechas, aciertos, duracion, dificultad } = req.body;
+  try {
+    const idCombate = await db.addCombate(connection, idEstudiante, idNPC, preguntasHechas, aciertos, duracion, dificultad);
+    res.status(200).json({
+      message: "Estadistiicas de combate registradas",
+      id: idCombate
+    });
+  } catch (err) {
+    res.status(500).json({ error: "No se pudo completar el registro: " + err.message });
+  }
+});
+
+app.post('/dash/instructor', async (req, res) => {
+  const { id_instructor } = req.body;
+  try {
+    const arrEstadisticas = await db.getEstadisticasEstudiantes(connection, id_instructor);
+    res.status(200).json({
+      estadisticas: arrEstadisticas
+    });
+  } catch (err) {
+    res.status(500).json({ error: "No se pudo completar el registro: " + err.message });
+  }
+});
+
+if (process.env.NODE_ENV !== 'test') {
+  startServer();
+}
+export default app;

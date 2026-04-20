@@ -58,6 +58,47 @@ export default class dbManagement {
         }
     }
 
+    static async addCombate(connection, idEstudiante, idNPC, preguntasHechas, aciertos, duracion, dificultad) {        
+        try {
+            const fecha = new Date().toISOString().split('T')[0];
+            const query = 'INSERT INTO Combate (id_estudiante, id_npc, num_preguntas, aciertos, segundos, fecha, dificultad) VALUES (?, ?, ?, ?, ?, ?, ?)';
+            const [resCombate] = await connection.execute(query, [idEstudiante, idNPC, preguntasHechas, aciertos, duracion, fecha, dificultad]);
+            const idCombate = resCombate.insertId;
+            return idCombate;
+        } catch (err) {
+            console.error("Error en login:", err.message);
+            throw err;
+        }
+    }
+
+    static async getEstadisticasEstudiantes(connection, idInstructor) {        
+        try {
+            const query = `
+                SELECT 
+                    p.nombre, 
+                    p.apellido, 
+                    es.monedas,
+                    COALESCE(SUM(co.num_preguntas), 0) AS total_preguntas,
+                    COALESCE(SUM(co.aciertos), 0) AS total_aciertos,
+                    COALESCE(SUM(co.segundos), 0) AS total_segundos,
+                    IF(SUM(co.num_preguntas) > 0, 
+                    ROUND((SUM(co.aciertos) * 100) / SUM(co.num_preguntas), 2), 
+                    0) AS porcentaje_exito
+                FROM Estudiante es
+                INNER JOIN Persona p ON es.id = p.id
+                LEFT JOIN Combate co ON es.id = co.id_estudiante
+                WHERE es.id_instructor = ?
+                GROUP BY es.id, p.nombre, p.apellido, es.monedas
+                ORDER BY porcentaje_exito DESC;
+            `;
+            const [rowsEstadisticas] = await connection.execute(query, [idInstructor]);
+            return rowsEstadisticas;
+        } catch (err) {
+            console.error("Error en login:", err.message);
+            throw err;
+        }
+    }
+
     static async connect() {
         return await mysql.createConnection({
             host: config.HOST,
