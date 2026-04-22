@@ -19,7 +19,7 @@ export default class dbManagement {
     
 }
     static async createEstudiante(connection, nombre, apellido, fecha_nacimiento, genero, correo, contrasena, dificultad) {
-     const { correo, contrasena, nombre, apellido, fecha_nacimiento, genero, dificultad } = datos;
+    //const { correo, contrasena, nombre, apellido, fecha_nacimiento, genero, dificultad } = datos;
 
     try {
         const hash = await bcrypt.hash(contrasena, 7);
@@ -61,52 +61,35 @@ export default class dbManagement {
     }
 
     static async loginJuego(connection, id, password) {
-    const queryDatosEstudiantes = `
-    SELECT 
-        us.id, 
-        us.correo, 
-        p.nombre, 
-        es.monedas, 
-        es.dificultad, 
-        us.contrasena 
-    FROM Usuario us
-    JOIN Persona p ON us.id = p.id
-    JOIN Estudiante es ON us.id = es.id
-    WHERE us.id = ? ;`;
-    
-    const queryEnemigos =  `
-    SELECT id_npc
-    FROM Estudiante_NPC_Derrotado
-    WHERE id_estudiante = ? `
-    
     try {
-        const [rowsEstadisticasEstudiante] = await connection.execute(queryDatosEstudiantes, [id]);
-        
-        if (rowsEstadisticasEstudiante.length !== 1) throw new Error('Usuario no encontrado');
+        const [results] = await connection.execute('CALL sp_get_datos_login_juego(?)', [id]);
 
-        const user = rowsEstadisticasEstudiante[0];
-        user.enemigosDerrotados = [];
+        const rowsEstudiante = results[0];
+        const rowsNPCs = results[1];
 
-        const isValid = user.contrasena == password//await bcrypt.compare(password, user.contrasena);
+        if (rowsEstudiante.length === 0)  throw new Error('Usuario no encontrado');
+
+        const user = rowsEstudiante[0];
+
+        const isValid = user.contrasena === password; //await bcrypt.compare(password, user.contrasena);
         if (!isValid) throw new Error('Contraseña incorrecta');
-        
-        const [rowsEnemigos] = await connection.execute(queryEnemigos, [id]);
 
-       user.enemigosDerrotados = rowsEnemigos.map(row => row.id_npc);
+        const enemigosDerrotados = rowsNPCs.map(npc => ({id_npc: npc.id_npc, derrotado:npc.derrotado, operacion: npc.operacion, tipo: npc.tipo, nombre: npc.nombre}));
 
         const { contrasena: _, ...publicUser } = user;
-        return publicUser;
+        
+        return {...publicUser, enemigosDerrotados };
+
     } catch (err) {
         console.error("Error en loginJuego:", err.message);
         throw err;
     }
-    }
+}
 
-    static async addCombate(connection, idEstudiante, idNPC, preguntasHechas, aciertos, duracion, dificultad) {        
+    static async addCombate(connection, idEstudiante, idNPC, preguntasHechas, aciertos, duracion, fecha_combate, dificultad) {        
         try {
-            const fecha = new Date().toISOString().split('T')[0];
             const query = 'INSERT INTO Combate (id_estudiante, id_npc, num_preguntas, aciertos, segundos, fecha, dificultad) VALUES (?, ?, ?, ?, ?, ?, ?)';
-            const [resCombate] = await connection.execute(query, [idEstudiante, idNPC, preguntasHechas, aciertos, duracion, fecha, dificultad]);
+            const [resCombate] = await connection.execute(query, [idEstudiante, idNPC, preguntasHechas, aciertos, duracion, fecha_combate, dificultad]);
             const idCombate = resCombate.insertId;
             return idCombate;
         } catch (err) {

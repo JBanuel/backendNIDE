@@ -54,15 +54,7 @@ app.post('/register', async (req, res) => {
 });
 
 app.post('/dash/instructor/crearEstudiante', async (req, res) => {
-    const { 
-        nombre, 
-        apellido, 
-        fecha_nacimiento, 
-        genero, 
-        correo, 
-        contrasena,
-        dificultad 
-    } = req.body;
+    const { nombre, apellido, fecha_nacimiento, genero, correo, contrasena,dificultad } = req.body;
 
     try {
         const id_user_created = await db.createEstudiante(
@@ -82,7 +74,6 @@ app.post('/dash/instructor/crearEstudiante', async (req, res) => {
         });
 
     } catch (err) {
-        // Manejo de errores (por ejemplo, si el correo ya existe o el rol no es válido)
         res.status(500).json({ 
             error: "No se pudo completar el registro: " + err.message 
         });
@@ -90,9 +81,9 @@ app.post('/dash/instructor/crearEstudiante', async (req, res) => {
 });
 
 app.post('/juego/addCombate', async (req, res) => {
-  const { idEstudiante, idNPC, preguntasHechas, aciertos, duracion, dificultad } = req.body;
+  const { idEstudiante, idNPC, preguntasHechas, aciertos, duracion, fecha_combate, dificultad } = req.body;
   try {
-    const idCombate = await db.addCombate(connection, idEstudiante, idNPC, preguntasHechas, aciertos, duracion, dificultad);
+    const idCombate = await db.addCombate(connection, idEstudiante, idNPC, preguntasHechas, aciertos, duracion, fecha_combate, dificultad);
     res.status(200).json({
       message: "Registro exitoso",
       id: idCombate
@@ -129,12 +120,7 @@ app.get('/dash/admin/getAllUnauthorized', async (req, res) => {
   }
 });
 
-if (process.env.NODE_ENV !== 'test') {
-  startServer();
+if (process.env.NODE_ENV !== 'test' && !process.env.LAMBDA_TASK_ROOT) {
+  app.listen(8080, () => console.log("Servidor local en puerto 8080"));
 }
 export default app;
-
-
-
-
-
