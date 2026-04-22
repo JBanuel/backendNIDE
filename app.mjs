@@ -60,8 +60,7 @@ app.post('/dash/instructor/crearEstudiante', async (req, res) => {
         fecha_nacimiento, 
         genero, 
         correo, 
-        contrasena, 
-        nombreRol, 
+        contrasena,
         dificultad 
     } = req.body;
 
@@ -73,15 +72,13 @@ app.post('/dash/instructor/crearEstudiante', async (req, res) => {
             fecha_nacimiento, 
             genero, 
             correo, 
-            contrasena, 
-            nombreRol, 
+            contrasena,  
             dificultad
         );
 
         res.status(200).json({
-            message: "Estudiante registrado exitosamente en Kidplays",
+            message: "Registro exitoso",
             id: id_user_created,
-            nombreRol: nombreRol
         });
 
     } catch (err) {
@@ -97,7 +94,7 @@ app.post('/juego/addCombate', async (req, res) => {
   try {
     const idCombate = await db.addCombate(connection, idEstudiante, idNPC, preguntasHechas, aciertos, duracion, dificultad);
     res.status(200).json({
-      message: "Estadistiicas de combate registradas",
+      message: "Registro exitoso",
       id: idCombate
     });
   } catch (err) {

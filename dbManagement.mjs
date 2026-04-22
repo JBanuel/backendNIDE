@@ -5,65 +5,33 @@ import config from './config.mjs';
 export default class dbManagement {
     static async createUser(connection, nombre, apellido, fecha_nacimiento, genero, correo, contrasena, nombreRol) {
     try {
-        // se puede usar el siguiente codigo para validar si ya existe un usuario con ese correo
-        // const queryCheck = 'SELECT id FROM Usuario WHERE correo = ?';
-        // const [existingUsers] = await connection.execute(queryCheck, [correo]);
-
-        // if (existingUsers.length > 0) throw new Error('El correo ya está registrado en el sistema');
-
-        const [roles] = await connection.execute('SELECT id FROM Rol WHERE rol = ?', [nombreRol]);
-        if (roles.length === 0) throw new Error('El rol especificado no existe');
-        const idRol = roles[0].id;
-
         const hash = await bcrypt.hash(contrasena, 7);
 
-        const queryUsuario = 'INSERT INTO Usuario (correo, contrasena, autorizacion) VALUES (?, ?, 1)';
-        const [resUsuario] = await connection.execute(queryUsuario, [correo, hash]);
-        const idUsuario = resUsuario.insertId;
+        const [rows] = await connection.execute('CALL sp_registrar_usuario(?, ?, ?, ?, ?, ?, ?)', [correo, hash, nombreRol, nombre, apellido, fecha_nacimiento, genero]);
 
-        const queryPersona = 'INSERT INTO Persona (id, nombre, apellido, fecha_nacimiento, genero) VALUES (?, ?, ?, ?, ?)';
-        await connection.execute(queryPersona, [idUsuario, nombre, apellido, fecha_nacimiento, genero]);
-
-        const queryRelacion = 'INSERT INTO Usuario_Rol (id_usuario, id_rol) VALUES (?, ?)';
-        await connection.execute(queryRelacion, [idUsuario, idRol]);
-
+        const idUsuario = rows[0][0].idUsuario;
+        
         return idUsuario;
-    } catch (err) {
-        console.error("Error al crear el usuario:", err.message);
-        throw err;
-    }
+    } catch (error) {
+        console.error("Error al crear usuario:", error.message);
+        throw error;
+}
     
 }
     static async createEstudiante(connection, nombre, apellido, fecha_nacimiento, genero, correo, contrasena, dificultad) {
+     const { correo, contrasena, nombre, apellido, fecha_nacimiento, genero, dificultad } = datos;
+
     try {
-        // se puede usar el siguiente codigo para validar si ya existe un usuario con ese correo
-        // const queryCheck = 'SELECT id FROM Usuario WHERE correo = ?';
-        // const [existingUsers] = await connection.execute(queryCheck, [correo]);
-
-        // if (existingUsers.length > 0) throw new Error('El correo ya está registrado en el sistema');
-
-        const [roles] = await connection.execute('SELECT id FROM Rol WHERE rol = ?', [Estudiante]);
-        if (roles.length === 0) throw new Error('El rol especificado no existe');
-        const idRol = roles[0].id;
-
         const hash = await bcrypt.hash(contrasena, 7);
 
-        const queryUsuario = 'INSERT INTO Usuario (correo, contrasena, autorizacion) VALUES (?, ?, 1)';
-        const [resUsuario] = await connection.execute(queryUsuario, [correo, hash]);
-        const idUsuario = resUsuario.insertId;
+        const [rows] = await connection.execute('CALL sp_registrar_estudiante(?, ?, ?, ?, ?, ?, ?)', [correo, hash, nombre, apellido, fecha_nacimiento, genero, dificultad]);
 
-        const queryPersona = 'INSERT INTO Persona (id, nombre, apellido, fecha_nacimiento, genero) VALUES (?, ?, ?, ?, ?)';
-        await connection.execute(queryPersona, [idUsuario, nombre, apellido, fecha_nacimiento, genero]);
-
-        const queryRelacion = 'INSERT INTO Usuario_Rol (id_usuario, id_rol) VALUES (?, ?)';
-        await connection.execute(queryRelacion, [idUsuario, idRol]);
-
-        const queryEstudiante = 'INSERT INTO Estudiante (id, id_tutor, id_instructor, monedas, dificultad) VALUES (?, ?, ?, ?, ?)';
-        await connection.execute(queryEstudiante, [idUsuario, null, null, 0, dificultad]);
-
+        const idUsuario = rows[0][0].idUsuario;
+        
         return idUsuario;
+
     } catch (err) {
-        console.error("Error al crear el usuario:", err.message);
+        console.error("Error al crear el estudiante:", err.message);
         throw err;
     }
 }
