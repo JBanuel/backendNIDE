@@ -32,6 +32,40 @@ export default class dbManagement {
         console.error("Error al crear el usuario:", err.message);
         throw err;
     }
+    
+}
+    static async createEstudiante(connection, nombre, apellido, fecha_nacimiento, genero, correo, contrasena, dificultad) {
+    try {
+        // se puede usar el siguiente codigo para validar si ya existe un usuario con ese correo
+        // const queryCheck = 'SELECT id FROM Usuario WHERE correo = ?';
+        // const [existingUsers] = await connection.execute(queryCheck, [correo]);
+
+        // if (existingUsers.length > 0) throw new Error('El correo ya está registrado en el sistema');
+
+        const [roles] = await connection.execute('SELECT id FROM Rol WHERE rol = ?', [Estudiante]);
+        if (roles.length === 0) throw new Error('El rol especificado no existe');
+        const idRol = roles[0].id;
+
+        const hash = await bcrypt.hash(contrasena, 7);
+
+        const queryUsuario = 'INSERT INTO Usuario (correo, contrasena, autorizacion) VALUES (?, ?, 1)';
+        const [resUsuario] = await connection.execute(queryUsuario, [correo, hash]);
+        const idUsuario = resUsuario.insertId;
+
+        const queryPersona = 'INSERT INTO Persona (id, nombre, apellido, fecha_nacimiento, genero) VALUES (?, ?, ?, ?, ?)';
+        await connection.execute(queryPersona, [idUsuario, nombre, apellido, fecha_nacimiento, genero]);
+
+        const queryRelacion = 'INSERT INTO Usuario_Rol (id_usuario, id_rol) VALUES (?, ?)';
+        await connection.execute(queryRelacion, [idUsuario, idRol]);
+
+        const queryEstudiante = 'INSERT INTO Estudiante (id, id_tutor, id_instructor, monedas, dificultad) VALUES (?, ?, ?, ?, ?)';
+        await connection.execute(queryEstudiante, [idUsuario, null, null, 0, dificultad]);
+
+        return idUsuario;
+    } catch (err) {
+        console.error("Error al crear el usuario:", err.message);
+        throw err;
+    }
 }
 
     static async loginUser(connection, correo, contrasena, nombreRol) {
@@ -56,6 +90,48 @@ export default class dbManagement {
             console.error("Error en login:", err.message);
             throw err;
         }
+    }
+
+    static async loginJuego(connection, id, password) {
+    const queryDatosEstudiantes = `
+    SELECT 
+        us.id, 
+        us.correo, 
+        p.nombre, 
+        es.monedas, 
+        es.dificultad, 
+        us.contrasena 
+    FROM Usuario us
+    JOIN Persona p ON us.id = p.id
+    JOIN Estudiante es ON us.id = es.id
+    WHERE us.id = ? ;`;
+    
+    const queryEnemigos =  `
+    SELECT id_npc
+    FROM Estudiante_NPC_Derrotado
+    WHERE id_estudiante = ? `
+    
+    try {
+        const [rowsEstadisticasEstudiante] = await connection.execute(queryDatosEstudiantes, [id]);
+        
+        if (rowsEstadisticasEstudiante.length !== 1) throw new Error('Usuario no encontrado');
+
+        const user = rowsEstadisticasEstudiante[0];
+        user.enemigosDerrotados = [];
+
+        const isValid = user.contrasena == password//await bcrypt.compare(password, user.contrasena);
+        if (!isValid) throw new Error('Contraseña incorrecta');
+        
+        const [rowsEnemigos] = await connection.execute(queryEnemigos, [id]);
+
+       user.enemigosDerrotados = rowsEnemigos.map(row => row.id_npc);
+
+        const { contrasena: _, ...publicUser } = user;
+        return publicUser;
+    } catch (err) {
+        console.error("Error en loginJuego:", err.message);
+        throw err;
+    }
     }
 
     static async addCombate(connection, idEstudiante, idNPC, preguntasHechas, aciertos, duracion, dificultad) {        
@@ -97,6 +173,14 @@ export default class dbManagement {
             console.error("Error en login:", err.message);
             throw err;
         }
+    }
+    
+    static async getAllUnauthorized(){
+        //const id, name, role, auth
+        const query = `SELET id name role auth
+        FROM Usuario us
+        LEFT JOIN  Usuario_Rol.id_usuario = us.id
+        `
     }
 
     static async connect() {
