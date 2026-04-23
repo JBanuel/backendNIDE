@@ -19,7 +19,6 @@ export default class dbManagement {
 
     }
     static async createEstudiante(connection, nombre, apellido, fecha_nacimiento, genero, correo, contrasena, id_instructor, dificultad) {
-        //const { correo, contrasena, nombre, apellido, fecha_nacimiento, genero, dificultad } = datos;
 
         try {
             const hash = await bcrypt.hash(contrasena, 7);
@@ -108,12 +107,12 @@ export default class dbManagement {
         try {
             const [results] = await connection.execute(query, [idInstructor]);
 
-            const totalEstudiantes = results[0][0].estudiantes;
+            const totalNPC = results[0][0].npc;
             const listaAlumnos = results[1];
             const todosLosCombates = results[2];
 
             const response = {
-            estudiantes: totalEstudiantes,
+            npcs: totalNPC,
             getStudents: listaAlumnos.map(estudiante => ({
                 id: estudiante.id,
                 name: estudiante.name,
