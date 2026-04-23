@@ -2,15 +2,11 @@ import express from 'express';
 import cors from 'cors';
 import db from './dbManagement.mjs';
 
+const port = 8080;
+
 const app = express();
 app.use(cors());
 app.use(express.json());
-
-//let connection;
-const port = process.env.PORT ?? 8080;
-const ipAddress = process.env.C9_HOSTNAME ?? 'localhost';
-
-let connection;
 
 async function startServer() {
   try {
@@ -103,13 +99,20 @@ app.post('/juego/addCombate', async (req, res) => {
   }
 });
 
-app.get('/dash/instructor/asignacionEstudiantes', async (req, res) => {
-
+app.put('/dash/instructor/asignarEstudiante', async (req, res) => {
+  let { idEstudiante, idInstructor } = req.body;
+  if(!idInstructor) idInstructor = null;
+  try { 
+    let connection = await db.connect();
+    await db.asignarEstudianteInstructor(connection, idEstudiante, idInstructor);
+    res.status(200).json({message : "Se le asigno a: " + idEstudiante + ", el instructor: " + idInstructor})
+  } catch(err){
+    res.status(500).json({error : "Error al asignar instructor " + err.message })
+  }
 });
 
 app.post('/dash/instructor', async (req, res) => {
   const { id_instructor } = req.body;
-
   try {
     let connection = await db.connect();
     const arrEstadisticas = await db.getEstadisticasEstudiantes(connection, id_instructor);
@@ -118,6 +121,17 @@ app.post('/dash/instructor', async (req, res) => {
     res.status(500).json({ error: "No se pudo completar el registro: " + err.message });
   }
 });
+
+app.put('/dash/instructor/cambiarDificultad', async (req, res) => {
+  const { dificultad, idEstudiante } = req.body;
+  try {
+    let connection = await db.connect();
+    await db.cambiarDificultad(dificultad, idEstudiante);
+    res.status(200).json({message : "Dificultad cambiada con éxito"});
+  } catch(err){
+    res.status(500).json({error: "No se puedo cambiar la dificultad" + err.message});
+  }
+})
 
 app.get('/dash/admin/getAllUnauthorized', async (req, res) => {
   try {

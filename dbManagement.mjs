@@ -131,12 +131,26 @@ export default class dbManagement {
         }
     }
 
-    static async getAllUnauthorized() {
-        //const id, name, role, auth
-        const query = `SELET id name role auth
-        FROM Usuario us
-        LEFT JOIN  Usuario_Rol.id_usuario = us.id
-        `
+    static async cambiarDificultad(connection, idEstudiante, dificultad){
+        let query = 'UPDATE Estudiante SET dificultad = ? WHERE id = ?;';
+        try{
+            const [resutls] = await connection.execute(query, [dificultad, idEstudiante]);
+            return;
+        }catch(err){
+            throw err;
+        }
+    }
+
+    static async asignarEstudianteInstructor(connection, idEstudiante, idInstructor){
+        let query = 'UPDATE Estudiante SET id_instructor = ? WHERE id = ?;';
+        if(!idInstructor) idInstructor = null;
+        try {
+
+            const [results] = await connection.execute(query, [idInstructor, idEstudiante]);
+            return;
+        }catch (err) {
+            throw err;
+        }
     }
 
     static async connect() {
