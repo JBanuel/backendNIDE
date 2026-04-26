@@ -76,7 +76,7 @@ app.post('/dash/instructor/crearEstudiante', async (req, res) => {
       genero, 
       correo, 
       contrasena, 
-      id_instructor, 
+      id_tutor, 
       dificultad
     );
 
