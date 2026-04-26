@@ -18,12 +18,12 @@ export default class dbManagement {
         }
 
     }
-    static async createEstudiante(connection, nombre, apellido, fecha_nacimiento, genero, correo, contrasena, id_instructor, dificultad) {
+    static async createEstudiante(connection, nombre, apellido, fecha_nacimiento, genero, correo, contrasena, id_tutor, dificultad) {
 
         try {
             const hash = await bcrypt.hash(contrasena, 7);
 
-            const [rows] = await connection.execute('CALL sp_registrar_estudiante(?, ?, ?, ?, ?, ?, ?)', [correo, hash, nombre, apellido, fecha_nacimiento, genero, id_instructor, dificultad]);
+            const [rows] = await connection.execute('CALL sp_registrar_estudiante(?, ?, ?, ?, ?, ?, ?)', [correo, hash, nombre, apellido, fecha_nacimiento, genero, id_tutor, dificultad]);
 
             const idUsuario = rows[0][0].idUsuario;
 
