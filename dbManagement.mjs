@@ -65,19 +65,35 @@ export default class dbManagement {
 
             const rowsEstudiante = results[0];
             const rowsNPCs = results[1];
+            const rowsPuertas = results[2];
 
             if (rowsEstudiante.length === 0) throw new Error('Usuario no encontrado');
 
             const user = rowsEstudiante[0];
 
-            const isValid = user.contrasena === password; //await bcrypt.compare(password, user.contrasena);
+            const isValid = await bcrypt.compare(password, user.contrasena);
             if (!isValid) throw new Error('Contraseña incorrecta');
 
-            const enemigosDerrotados = rowsNPCs.map(npc => ({ id_npc: npc.id_npc, derrotado: npc.derrotado, operacion: npc.operacion, tipo: npc.tipo, nombre: npc.nombre }));
+            const enemigosDerrotados = rowsNPCs.map(npc => ({
+                id_npc: npc.id_npc,
+                derrotado: npc.derrotado,
+                operacion: npc.operacion,
+                tipo: npc.tipo,
+                nombre: npc.nombre
+            }));
+
+            const puertas = rowsPuertas.map(pue => ({
+                id_puerta: pue.id_puerta,
+                esta_abierta: pue.esta_abierta
+            }));
 
             const { contrasena: _, ...publicUser } = user;
 
-            return { ...publicUser, enemigosDerrotados };
+            return {
+                ...publicUser,
+                enemigosDerrotados,
+                puertas
+            };
 
         } catch (err) {
             console.error("Error en loginJuego:", err.message);
@@ -103,7 +119,7 @@ export default class dbManagement {
 
     static async getEstadisticasEstudiantes(connection, idInstructor) {
         let query = 'CALL sp_obtener_dashboard_instructor(?)';
-        
+
         try {
             const [results] = await connection.execute(query, [idInstructor]);
 
@@ -112,17 +128,17 @@ export default class dbManagement {
             const todosLosCombates = results[2];
 
             const response = {
-            npcs: totalNPC,
-            getStudents: listaAlumnos.map(estudiante => ({
-                id: estudiante.id,
-                name: estudiante.name,
-                gender: estudiante.gender,
-                difficulty: estudiante.difficulty,
-                completedNPCs: estudiante.completedNPCs,
-                history: todosLosCombates
-                .filter(c => c.id_estudiante === estudiante.id)
-                .map(({ id_estudiante, ...resto }) => resto)
-            }))
+                npcs: totalNPC,
+                getStudents: listaAlumnos.map(estudiante => ({
+                    id: estudiante.id,
+                    name: estudiante.name,
+                    gender: estudiante.gender,
+                    difficulty: estudiante.difficulty,
+                    completedNPCs: estudiante.completedNPCs,
+                    history: todosLosCombates
+                        .filter(c => c.id_estudiante === estudiante.id)
+                        .map(({ id_estudiante, ...resto }) => resto)
+                }))
             };
 
             return response;
@@ -131,26 +147,44 @@ export default class dbManagement {
         }
     }
 
-    static async cambiarDificultad(connection, idEstudiante, dificultad){
+    static async cambiarDificultad(connection, idEstudiante, dificultad) {
         let query = 'UPDATE Estudiante SET dificultad = ? WHERE id = ?;';
-        try{
+        try {
             const [resutls] = await connection.execute(query, [dificultad, idEstudiante]);
             return;
-        }catch(err){
+        } catch (err) {
             throw err;
         }
     }
 
-    static async asignarEstudianteInstructor(connection, idEstudiante, idInstructor){
+    static async asignarEstudianteInstructor(connection, idEstudiante, idInstructor) {
         let query = 'UPDATE Estudiante SET id_instructor = ? WHERE id = ?;';
-        if(!idInstructor) idInstructor = null;
+        if (!idInstructor) idInstructor = null;
         try {
 
             const [results] = await connection.execute(query, [idInstructor, idEstudiante]);
             return;
-        }catch (err) {
+        } catch (err) {
             throw err;
         }
+    }
+
+    static async getEstudiantesParaAsignar(connection) {
+        let query = `SELECT 
+        e.id,
+        CONCAT(p.nombre, ' ', p.apellido) AS name,
+        p.genero,
+        e.id_instructor
+        FROM Estudiante e
+        INNER JOIN Persona p ON e.id = p.id;
+        `;
+        try {
+            const [rows] = await connection.execute(query)
+            return rows.map(est => ({ id: est.id, name: est.name, gender: est.genero, upToAdd: !est.id_instructor }))
+        } catch (err) {
+            throw err;
+        }
+
     }
 
     static async connect() {

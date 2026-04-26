@@ -8,44 +8,45 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-async function startServer() {
-  try {
-    let connection = await db.connect();
-    connection = await db.connect();
-    console.log("Conectado a Kidplays");
-    app.listen(8080, () => console.log("Servidor en puerto 8080"));
-  } catch (err) {
-    console.error("Error inicial:", err);
-  }
-}
-
 app.post('/login', async (req, res) => {
   const { email, password, nombreRol } = req.body;
+  let connection;
   try {
-    let connection = await db.connect();
+    connection = await db.connect();
     const user_loged = await db.loginUser(connection, email, password, nombreRol);
     res.status(200).json(user_loged);
   } catch (err) {
     res.status(400).json({ error: err.message });
+  }finally {
+    if (connection) {
+      await connection.end();
+    }
   }
 });
 
 app.post('/loginJuego', async (req, res) => {
   const { id, password } = req.body;
+  let connection;
 
   try {
-    let connection = await db.connect();
+    connection = await db.connect();
     const user_loged = await db.loginJuego(connection, id, password);
     res.status(200).json(user_loged);
   } catch (err) {
     res.status(400).json({ error: err.message });
+  }finally {
+    if (connection) {
+      await connection.end();
+    }
   }
 });
 
 app.post('/register', async (req, res) => {
   const { nombre, apellido, fecha_nacimiento, genero, correo, contrasena, nombreRol } = req.body;
+  let connection;
+
   try {
-    let connection = await db.connect();
+    connection = await db.connect();
     const id_user_created = await db.createUser(connection, nombre, apellido, fecha_nacimiento, genero, correo, contrasena, nombreRol);
     res.status(200).json({
       message: "Registro exitoso",
@@ -54,22 +55,28 @@ app.post('/register', async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ error: "No se pudo completar el registro: " + err.message });
+  }finally {
+    if (connection) {
+      await connection.end();
+    }
   }
 });
 
 app.post('/dash/instructor/crearEstudiante', async (req, res) => {
-  const { nombre, apellido, fecha_nacimiento, genero, correo, contrasena, dificultad } = req.body;
+  const { nombre, apellido, fecha_nacimiento, genero, correo, contrasena, id_instructor, dificultad } = req.body;
+  let connection;
 
   try {
-    let connection = await db.connect();
+    connection = await db.connect();
     const id_user_created = await db.createEstudiante(
-      connection,
-      nombre,
-      apellido,
-      fecha_nacimiento,
-      genero,
-      correo,
-      contrasena,
+      connection, 
+      nombre, 
+      apellido, 
+      fecha_nacimiento, 
+      genero, 
+      correo, 
+      contrasena, 
+      id_instructor, 
       dificultad
     );
 
@@ -82,13 +89,19 @@ app.post('/dash/instructor/crearEstudiante', async (req, res) => {
     res.status(500).json({
       error: "No se pudo completar el registro: " + err.message
     });
+  }finally {
+    if (connection) {
+      await connection.end();
+    }
   }
 });
 
 app.post('/juego/addCombate', async (req, res) => {
   const { idEstudiante, idNPC, preguntasHechas, aciertos, duracion, fecha_combate, dificultad } = req.body;
+  let connection;
+
   try {
-    let connection = await db.connect();
+    connection = await db.connect();
     const idCombate = await db.addCombate(connection, idEstudiante, idNPC, preguntasHechas, aciertos, duracion, fecha_combate, dificultad);
     res.status(200).json({
       message: "Registro exitoso",
@@ -96,52 +109,78 @@ app.post('/juego/addCombate', async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ error: "No se pudo completar el registro: " + err.message });
+  }finally {
+    if (connection) {
+      await connection.end();
+    }
   }
 });
 
 app.put('/dash/instructor/asignarEstudiante', async (req, res) => {
   let { idEstudiante, idInstructor } = req.body;
+  let connection;
+
   if(!idInstructor) idInstructor = null;
   try { 
-    let connection = await db.connect();
+    connection = await db.connect();
     await db.asignarEstudianteInstructor(connection, idEstudiante, idInstructor);
     res.status(200).json({message : "Se le asigno a: " + idEstudiante + ", el instructor: " + idInstructor})
   } catch(err){
     res.status(500).json({error : "Error al asignar instructor " + err.message })
+  }finally {
+    if (connection) {
+      await connection.end();
+    }
   }
 });
 
 app.post('/dash/instructor', async (req, res) => {
   const { id_instructor } = req.body;
+  let connection;
+
   try {
-    let connection = await db.connect();
+    connection = await db.connect();
     const arrEstadisticas = await db.getEstadisticasEstudiantes(connection, id_instructor);
     res.status(200).json(arrEstadisticas);
   } catch (err) {
     res.status(500).json({ error: "No se pudo completar el registro: " + err.message });
+  }finally {
+    if (connection) {
+      await connection.end();
+    }
   }
 });
 
 app.put('/dash/instructor/cambiarDificultad', async (req, res) => {
   const { dificultad, idEstudiante } = req.body;
+  let connection;
+
   try {
-    let connection = await db.connect();
-    await db.cambiarDificultad(dificultad, idEstudiante);
+    connection = await db.connect();
+    await db.cambiarDificultad(connection, dificultad, idEstudiante);
     res.status(200).json({message : "Dificultad cambiada con éxito"});
   } catch(err){
     res.status(500).json({error: "No se puedo cambiar la dificultad" + err.message});
+  }finally {
+    if (connection) {
+      await connection.end();
+    }
   }
 })
 
-app.get('/dash/admin/getAllUnauthorized', async (req, res) => {
-  try {
-    let connection = await db.connect();
-    const arrEstadisticas = await db.getEstadisticasEstudiantes(connection, id_instructor);
-    res.status(200).json({
-      estadisticas: arrEstadisticas
-    });
-  } catch (err) {
-    res.status(500).json({ error: "No se pudo completar el registro: " + err.message });
+app.get('/dash/instructor/getEstudiantesParaAsignar', async (req, res) => {
+  let connection;
+  
+  try{
+    connection = await db.connect();
+    const datos = await db.getEstudiantesParaAsignar(connection);
+    res.status(200).json(datos);
+  } catch(err){
+    res.status(500).json({error: "No se puedieron obtener los estudiantes: " + err.message})
+  }finally {
+    if (connection) {
+      await connection.end();
+    }
   }
 });
 
