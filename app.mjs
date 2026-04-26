@@ -116,6 +116,44 @@ app.post('/juego/addCombate', async (req, res) => {
   }
 });
 
+app.post('/juego/updateMonedas', async (req, res) => {
+  const { idEstudiante, nuevoNumeroMonedas } = req.body;
+  let connection;
+
+  try {
+    connection = await db.connect();
+     await db.updateMonedas(connection, idEstudiante, nuevoNumeroMonedas);
+    res.status(200).json({
+      message: "Registro exitoso",
+    });
+  } catch (err) {
+    res.status(500).json({ error: "No se pudo completar el registro: " + err.message });
+  }finally {
+    if (connection) {
+      await connection.end();
+    }
+  }
+});
+
+app.post('/juego/updatePuerta', async (req, res) => {
+  const { idEstudiante, idPuerta } = req.body;
+  let connection;
+
+  try {
+    connection = await db.connect();
+    await db.updatePuerta(connection, idEstudiante, idPuerta);
+    res.status(200).json({
+      message: "Registro exitoso",
+    });
+  } catch (err) {
+    res.status(500).json({ error: "No se pudo completar el registro: " + err.message });
+  }finally {
+    if (connection) {
+      await connection.end();
+    }
+  }
+});
+
 app.put('/dash/instructor/asignarEstudiante', async (req, res) => {
   let { idEstudiante, idInstructor } = req.body;
   let connection;

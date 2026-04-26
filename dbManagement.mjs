@@ -169,6 +169,26 @@ export default class dbManagement {
         }
     }
 
+    static async updateMonedas(connection, idEstudiante, nuevoNumeroMonedas){
+        let query = 'UPDATE Estudiante SET monedas = ? WHERE id = ?';
+        try{
+            await connection.execute(query, [nuevoNumeroMonedas, idEstudiante]);
+            return;
+        } catch(err){
+            throw err;
+        }
+    }
+
+    static async updatePuerta(connection, idEstudiante, idPuerta){
+        let query = 'UPDATE Puertas_estudiante SET esta_abierta = 1 WHERE id_puerta = ? AND id_estudiante = ?';
+        try{
+            await connection.execute(query, [idPuerta, idEstudiante]);
+            return;
+        }catch(err){
+            throw err;
+        }
+    }
+
     static async getEstudiantesParaAsignar(connection) {
         let query = `SELECT 
         e.id,
