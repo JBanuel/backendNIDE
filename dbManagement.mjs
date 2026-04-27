@@ -207,6 +207,60 @@ export default class dbManagement {
 
     }
 
+    static async getAdminDashboard(connection) {
+    try {
+        const queryTotales = `
+            SELECT 
+                (SELECT COUNT(*) FROM Usuario u JOIN Usuario_Rol ur ON u.id = ur.id_usuario JOIN Rol r ON ur.id_rol = r.id WHERE r.rol = 'Tutor') as tutorNum,
+                (SELECT COUNT(*) FROM Estudiante) as studentNum,
+                (SELECT COUNT(*) FROM Usuario WHERE autorizacion = 0) as requestNum;
+        `;
+        const [resTotales] = await connection.execute(queryTotales);
+        const totales = resTotales[0];
+
+        const [results] = await connection.execute('CALL ObtenerReporteInstructores()');
+        
+        const listaInstructores = results[0];
+
+        return {
+            tutorNum: totales.tutorNum.toString(),
+            StudentNum: totales.studentNum.toString(),
+            RequestNum: totales.requestNum.toString(),
+            instructors: listaInstructores.map(inst => ({
+                name: inst.name,
+                gender: inst.gender,
+                groupProgress: (inst.groupProgress || 0).toString(),
+                groupPrecision: (inst.groupPrecision || 0).toString()
+            }))
+        };
+    } catch (err) {
+        console.error("Error en getAdminDashboard con SP:", err.message);
+        throw err;
+    }
+    }
+
+    static async getUsuariosPorAutorizar(connection, estadoAutorizacion) {
+        const query = `
+            SELECT 
+                u.id, 
+                p.genero AS gender, 
+                CONCAT(p.nombre, ' ', p.apellido) AS name, 
+                r.rol AS role
+            FROM Usuario u
+            JOIN Persona p ON u.id = p.id
+            JOIN Usuario_Rol ur ON u.id = ur.id_usuario
+            JOIN Rol r ON ur.id_rol = r.id
+            WHERE u.autorizacion = ? AND r.rol != 'Estudiante'
+        `;
+        try {
+            const [rows] = await connection.execute(query, [estadoAutorizacion]);
+            return rows; 
+        } catch (err) {
+            console.error("Error al obtener usuarios por autorización:", err.message);
+            throw err;
+        }
+    }
+
     static async connect() {
         return await mysql.createConnection({
             host: config.HOST,

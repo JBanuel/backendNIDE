@@ -222,6 +222,32 @@ app.get('/dash/instructor/getEstudiantesParaAsignar', async (req, res) => {
   }
 });
 
+app.get('/dash/admin', async (req, res) => {
+  let connection;
+  try {
+    connection = await db.connect();
+    const dashboardData = await db.getAdminDashboard(connection);
+    res.status(200).json(dashboardData);
+  } catch (err) {
+    res.status(500).json({ error: "Error al cargar dashboard: " + err.message });
+  } finally {
+    if (connection) await connection.end();
+  }
+});
+
+app.get('/dash/admin/solicitudes', async (req, res) => {
+  let connection;
+  try {
+    connection = await db.connect();
+    const solicitudes = await db.getUsuariosPorAutorizar(connection, 0);
+    res.status(200).json(solicitudes);
+  } catch (err) {
+    res.status(500).json({ error: "Error al obtener solicitudes: " + err.message });
+  } finally {
+    if (connection) await connection.end();
+  }
+});
+
 if (process.env.AWS_LAMBDA_FUNCTION_NAME === undefined) {
   app.listen(port, () => {
     console.log(`Server listening at http://localhost::8080`);
