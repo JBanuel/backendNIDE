@@ -239,7 +239,7 @@ export default class dbManagement {
     }
     }
 
-    static async getUsuariosPorAutorizar(connection, estadoAutorizacion) {
+    static async getUsuariosPorAutorizacion(connection, estadoAutorizacion) {
         const query = `
             SELECT 
                 u.id, 
@@ -250,13 +250,40 @@ export default class dbManagement {
             JOIN Persona p ON u.id = p.id
             JOIN Usuario_Rol ur ON u.id = ur.id_usuario
             JOIN Rol r ON ur.id_rol = r.id
-            WHERE u.autorizacion = ? AND r.rol != 'Estudiante'
+            WHERE u.autorizacion = ?'
         `;
         try {
             const [rows] = await connection.execute(query, [estadoAutorizacion]);
             return rows; 
         } catch (err) {
             console.error("Error al obtener usuarios por autorización:", err.message);
+            throw err;
+        }
+    }
+
+    static async aceptarSolicitudUsuario(connection, userId, accepted) {
+        try {
+            if (accepted === "true" || accepted === true) {
+                const query = 'UPDATE Usuario SET autorizacion = 1 WHERE id = ?';
+                await connection.execute(query, [userId]);
+            } else {
+                const query = 'DELETE FROM Usuario WHERE id = ?';
+                await connection.execute(query, [userId]);
+            }
+            return true;
+        } catch (err) {
+            console.error("Error al resolver solicitud:", err.message);
+            throw err;
+        }
+    }
+
+    static async eliminarUsuario(connection, userId) {
+        try {
+            const query = 'CALL sp_eliminar_usuario(?);';
+            await connection.execute(query, [userId]);
+            return true;
+        } catch (err) {
+            console.error("Error al eliminar usuario:", err.message);
             throw err;
         }
     }

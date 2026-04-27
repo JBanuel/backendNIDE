@@ -233,14 +233,55 @@ app.get('/dash/admin', async (req, res) => {
   }
 });
 
-app.get('/dash/admin/solicitudes', async (req, res) => {
+app.get('/dash/admin/usuariosPorAutorizar', async (req, res) => {
   let connection;
   try {
     connection = await db.connect();
-    const solicitudes = await db.getUsuariosPorAutorizar(connection, 0);
+    const solicitudes = await db.getUsuariosPorAutorizacion(connection, 0);
     res.status(200).json(solicitudes);
   } catch (err) {
     res.status(500).json({ error: "Error al obtener solicitudes: " + err.message });
+  } finally {
+    if (connection) await connection.end();
+  }
+});
+
+app.put('/dash/admin/aprobarSolicitud', async (req, res) => {
+  const { userId, accepted } = req.body;
+  let connection;
+  try {
+    connection = await db.connect();
+    await db.aceptarSolicitudUsuario(connection, userId, accepted);
+    res.status(200).json(true);
+  } catch (err) {
+    res.status(500).json({ error: "Error al resolver solicitud: " + err.message });
+  } finally {
+    if (connection) await connection.end();
+  }
+});
+
+app.get('/dash/admin/usuariosAutorizados', async (req, res) => {
+  let connection;
+  try {
+    connection = await db.connect();
+    const usuarios = await db.getUsuariosPorAutorizacion(connection, 1);
+    res.status(200).json(usuarios);
+  } catch (err) {
+    res.status(500).json({ error: "Error al obtener usuarios: " + err.message });
+  } finally {
+    if (connection) await connection.end();
+  }
+});
+
+app.put('/dash/admin/eliminarUsuario', async (req, res) => {
+  const { userId } = req.body; 
+  let connection;
+  try {
+    connection = await db.connect();
+    await db.eliminarUsuario(connection, userId);
+    res.status(200).json(true);
+  } catch (err) {
+    res.status(500).json({ error: "Error al eliminar usuario: " + err.message });
   } finally {
     if (connection) await connection.end();
   }
