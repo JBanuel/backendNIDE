@@ -18,12 +18,12 @@ export default class dbManagement {
         }
 
     }
-    static async createEstudiante(connection, nombre, apellido, fecha_nacimiento, genero, correo, contrasena, id_tutor, dificultad) {
+    static async createEstudiante(connection, nombre, apellido, fecha_nacimiento, genero, contrasena, id_tutor) {
 
         try {
             const hash = await bcrypt.hash(contrasena, 7);
 
-            const [rows] = await connection.execute('CALL sp_registrar_estudiante(?, ?, ?, ?, ?, ?, ?)', [correo, hash, nombre, apellido, fecha_nacimiento, genero, id_tutor, dificultad]);
+            const [rows] = await connection.execute('CALL sp_registrar_estudiante(?, ?, ?, ?, ?, ?)', [hash, nombre, apellido, fecha_nacimiento, genero, id_tutor]);
 
             const idUsuario = rows[0][0].idUsuario;
 
@@ -41,7 +41,7 @@ export default class dbManagement {
             FROM Usuario u
             JOIN Usuario_Rol ur ON u.id = ur.id_usuario
             JOIN Rol r ON ur.id_rol = r.id
-            WHERE u.correo = ? AND r.rol = ?`;
+            WHERE u.correo = ? AND r.rol = ? AND u.autorizacion = true`;
 
         try {
             const [rows] = await connection.execute(query, [correo, nombreRol]);

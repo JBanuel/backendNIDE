@@ -63,7 +63,7 @@ app.post('/register', async (req, res) => {
 });
 
 app.post('/dash/instructor/crearEstudiante', async (req, res) => {
-  const { nombre, apellido, fecha_nacimiento, genero, correo, contrasena, id_tutor, dificultad } = req.body;
+  const { nombre, apellido, fecha_nacimiento, genero, contrasena, id_tutor } = req.body;
   let connection;
 
   try {
@@ -74,10 +74,8 @@ app.post('/dash/instructor/crearEstudiante', async (req, res) => {
       apellido, 
       fecha_nacimiento, 
       genero, 
-      correo, 
       contrasena, 
-      id_tutor, 
-      dificultad
+      id_tutor
     );
 
     res.status(200).json({
