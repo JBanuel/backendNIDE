@@ -62,7 +62,7 @@ app.post('/register', async (req, res) => {
   }
 });
 
-app.post('/dash/instructor/crearEstudiante', async (req, res) => {
+app.post('/dash/tutor/crearEstudiante', async (req, res) => {
   const { nombre, apellido, fecha_nacimiento, genero, contrasena, id_tutor } = req.body;
   let connection;
 
@@ -176,7 +176,24 @@ app.post('/dash/instructor', async (req, res) => {
 
   try {
     connection = await db.connect();
-    const arrEstadisticas = await db.getEstadisticasEstudiantes(connection, id_instructor);
+    const arrEstadisticas = await db.getEstadisticasEstudiantesInstructor(connection, id_instructor);
+    res.status(200).json(arrEstadisticas);
+  } catch (err) {
+    res.status(500).json({ error: "No se pudo completar el registro: " + err.message });
+  }finally {
+    if (connection) {
+      await connection.end();
+    }
+  }
+});
+
+app.post('/dash/tutor', async (req, res) => {
+  const { id_tutor } = req.body;
+  let connection;
+
+  try {
+    connection = await db.connect();
+    const arrEstadisticas = await db.getEstadisticasEstudiantesTutor(connection, id_tutor);
     res.status(200).json(arrEstadisticas);
   } catch (err) {
     res.status(500).json({ error: "No se pudo completar el registro: " + err.message });
@@ -196,7 +213,7 @@ app.put('/dash/instructor/cambiarDificultad', async (req, res) => {
     await db.cambiarDificultad(connection, dificultad, idEstudiante);
     res.status(200).json({message : "Dificultad cambiada con éxito"});
   } catch(err){
-    res.status(500).json({error: "No se puedo cambiar la dificultad" + err.message});
+    res.status(500).json({error: "No se puedo cambiar la dificultad: " + err.message});
   }finally {
     if (connection) {
       await connection.end();
@@ -273,7 +290,7 @@ app.get('/dash/admin/usuariosAutorizados', async (req, res) => {
   }
 });
 
-app.put('/dash/admin/eliminarUsuario', async (req, res) => {
+app.delete('/dash/admin/eliminarUsuario', async (req, res) => {
   const { userId } = req.body; 
   let connection;
   try {

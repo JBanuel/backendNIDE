@@ -117,7 +117,7 @@ export default class dbManagement {
         }
     }
 
-    static async getEstadisticasEstudiantes(connection, idInstructor) {
+    static async getEstadisticasEstudiantesInstructor(connection, idInstructor) {
         let query = 'CALL sp_obtener_dashboard_instructor(?)';
 
         try {
@@ -147,7 +147,37 @@ export default class dbManagement {
         }
     }
 
-    static async cambiarDificultad(connection, idEstudiante, dificultad) {
+    static async getEstadisticasEstudiantesTutor(connection, id_tutor) {
+        let query = 'CALL sp_obtener_dashboard_tutor(?)';
+
+        try {
+            const [results] = await connection.execute(query, [id_tutor]);
+
+            const totalNPC = results[0][0].npc;
+            const listaAlumnos = results[1];
+            const todosLosCombates = results[2];
+
+            const response = {
+                npcs: totalNPC,
+                getStudents: listaAlumnos.map(estudiante => ({
+                    id: estudiante.id,
+                    name: estudiante.name,
+                    gender: estudiante.gender,
+                    difficulty: estudiante.difficulty,
+                    completedNPCs: estudiante.completedNPCs,
+                    history: todosLosCombates
+                        .filter(c => c.id_estudiante === estudiante.id)
+                        .map(({ id_estudiante, ...resto }) => resto)
+                }))
+            };
+
+            return response;
+        } catch (err) {
+            throw err;
+        }
+    }
+
+    static async cambiarDificultad(connection, dificultad, idEstudiante) {
         let query = 'UPDATE Estudiante SET dificultad = ? WHERE id = ?;';
         try {
             const [resutls] = await connection.execute(query, [dificultad, idEstudiante]);
@@ -211,7 +241,8 @@ export default class dbManagement {
     try {
         const queryTotales = `
             SELECT 
-                (SELECT COUNT(*) FROM Usuario u JOIN Usuario_Rol ur ON u.id = ur.id_usuario JOIN Rol r ON ur.id_rol = r.id WHERE r.rol = 'Tutor') as tutorNum,
+                (SELECT COUNT(*) FROM Usuario u JOIN Usuario_Rol ur ON u.id = ur.id_usuario JOIN Rol r ON ur.id_rol = r.id WHERE r.rol = 'Tutor' AND autorizacion=1) as tutorNum,
+                (SELECT COUNT(*) FROM Usuario u JOIN Usuario_Rol ur ON u.id = ur.id_usuario JOIN Rol r ON ur.id_rol = r.id WHERE r.rol = 'Administrador' AND autorizacion=1) as adminNum,
                 (SELECT COUNT(*) FROM Estudiante) as studentNum,
                 (SELECT COUNT(*) FROM Usuario WHERE autorizacion = 0) as requestNum;
         `;
@@ -223,6 +254,7 @@ export default class dbManagement {
         const listaInstructores = results[0];
 
         return {
+            adminNum: totales.adminNum.toString(),
             tutorNum: totales.tutorNum.toString(),
             StudentNum: totales.studentNum.toString(),
             RequestNum: totales.requestNum.toString(),
@@ -250,7 +282,7 @@ export default class dbManagement {
             JOIN Persona p ON u.id = p.id
             JOIN Usuario_Rol ur ON u.id = ur.id_usuario
             JOIN Rol r ON ur.id_rol = r.id
-            WHERE u.autorizacion = ?'
+            WHERE u.autorizacion = ?;
         `;
         try {
             const [rows] = await connection.execute(query, [estadoAutorizacion]);
