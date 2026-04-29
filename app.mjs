@@ -1,7 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import db from './dbManagement.mjs';
-
+import transporter from './helpers/mailer.mjs';
+import { config } from 'dotenv';
 const port = 8080;
 
 const app = express();
@@ -54,7 +55,15 @@ app.post('/register', async (req, res) => {
       nombreRol: nombreRol
     });
   } catch (err) {
-    res.status(500).json({ error: "No se pudo completar el registro: " + err.message });
+    console.error("Error backend crudo:", err); // Prints to your VS Code terminal
+    
+    // Send the full error details back to Postman
+    res.status(500).json({ 
+      error: "Falló el registro", 
+      mensaje: err.message,
+      sqlMessage: err.sqlMessage, 
+      codigoSQL: err.code 
+    });
   }finally {
     if (connection) {
       await connection.end();
@@ -304,9 +313,44 @@ app.delete('/dash/admin/eliminarUsuario', async (req, res) => {
   }
 });
 
+app.post('/dash/recuperacionContrasena', async (req, res) => {
+  const { correoRecuperacion, nombreRol } = req.body;
+  let connection;
+
+  try {
+    connection = await db.connect();
+    const nuevaContrasena = await db.generarNuevaContrasena(connection, correoRecuperacion, nombreRol);
+    
+    const mailOptions = {
+      from: `"Soporte Técnico NIDE" <${config.ES_EMAIL}>`,
+      to: correoRecuperacion,
+      subject: "Recuperación de Contraseña",
+      html: `
+        <div style="font-family: sans-serif; border: 1px solid #eee; padding: 20px;">
+          <h2>Tu nueva contraseña</h2>
+          <p>Has recibido este correo porque solicitaste una nueva contraseña.</p>
+          <p>Tu nueva contraseña es: <strong>${nuevaContrasena}</strong></p>
+          <p>Te recomendamos cambiarla una vez que inicies sesión.</p>
+        </div>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    res.status(200).json({ message: "Correo de recuperación enviado con éxito." });
+
+  } catch (err) {
+    res.status(500).json({ error: "No se pudo completar la solicitud: " + err.message });
+  } finally {
+    if (connection) {
+      await connection.end();
+    }
+  }
+});
+
 if (process.env.AWS_LAMBDA_FUNCTION_NAME === undefined) {
   app.listen(port, () => {
-    console.log(`Server listening at http://localhost::8080`);
+    console.log(`Server listening at http://localhost:8080`);
   });
 }
 export default app;
