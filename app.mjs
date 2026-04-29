@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import db from './dbManagement.mjs';
 import transporter from './helpers/mailer.mjs';
-import { config } from 'dotenv';
+import config  from './config.mjs';
 const port = 8080;
 
 const app = express();
@@ -55,14 +55,9 @@ app.post('/register', async (req, res) => {
       nombreRol: nombreRol
     });
   } catch (err) {
-    console.error("Error backend crudo:", err); // Prints to your VS Code terminal
-    
-    // Send the full error details back to Postman
     res.status(500).json({ 
       error: "Falló el registro", 
       mensaje: err.message,
-      sqlMessage: err.sqlMessage, 
-      codigoSQL: err.code 
     });
   }finally {
     if (connection) {
@@ -338,6 +333,41 @@ app.post('/dash/recuperacionContrasena', async (req, res) => {
     await transporter.sendMail(mailOptions);
 
     res.status(200).json({ message: "Correo de recuperación enviado con éxito." });
+
+  } catch (err) {
+    res.status(500).json({ error: "No se pudo completar la solicitud: " + err.message });
+  } finally {
+    if (connection) {
+      await connection.end();
+    }
+  }
+});
+
+app.post('/juego/recuperacionContrasena', async (req, res) => {
+  const { idEstudiante, correoTutor } = req.body;
+  let connection;
+
+  try {
+    connection = await db.connect();
+    const nuevaContrasena = await db.generarNuevaContrasenaEstudiante(connection, idEstudiante, correoTutor);
+    
+    const mailOptions = {
+      from: `"Soporte Técnico NIDE" <${config.ES_EMAIL}>`, 
+      to: correoTutor,
+      subject: "Recuperación de Contraseña de Estudiante",
+      html: `
+        <div style="font-family: sans-serif; border: 1px solid #eee; padding: 20px;">
+          <h2>Nueva contraseña para el estudiante #${idEstudiante}</h2>
+          <p>Has recibido este correo porque solicitaste recuperar la contraseña de una cuenta de estudiante asociada a ti.</p>
+          <p>La nueva contraseña para ingresar al juego es: <strong>${nuevaContrasena}</strong></p>
+          <p>Por seguridad, recomendamos cambiarla dentro del juego una vez que inicie sesión.</p>
+        </div>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    res.status(200).json({ message: "Correo de recuperación enviado con éxito al tutor." });
 
   } catch (err) {
     res.status(500).json({ error: "No se pudo completar la solicitud: " + err.message });

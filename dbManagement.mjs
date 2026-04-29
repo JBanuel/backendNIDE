@@ -319,8 +319,8 @@ export default class dbManagement {
             throw err;
         }
     }
+    
     static async generarNuevaContrasena(connection, email, nombreRol) {
-        // Genera una cadena aleatoria de 10 bytes (20 caracteres en hex)
         const nuevaContrasena = randomBytes(10).toString('hex');
         
         try { 
@@ -338,6 +338,32 @@ export default class dbManagement {
             
             if (result.affectedRows === 0) {
                 throw new Error("No se encontró un usuario con ese correo y rol.");
+            }
+
+            return nuevaContrasena;
+        } catch(err) {
+            throw err;
+        }
+    }
+
+    static async generarNuevaContrasenaEstudiante(connection, idEstudiante, correoTutor) {
+        const nuevaContrasena = randomBytes(6).toString('hex'); 
+        
+        try { 
+            const hash = await bcrypt.hash(nuevaContrasena, 7);
+            
+            const query = `
+                UPDATE Usuario u_est
+                JOIN Estudiante e ON u_est.id = e.id
+                JOIN Usuario u_tutor ON e.id_tutor = u_tutor.id
+                SET u_est.contrasena = ? 
+                WHERE e.id = ? AND u_tutor.correo = ?
+            `;
+            
+            const [result] = await connection.execute(query, [hash, idEstudiante, correoTutor]);
+            
+            if (result.affectedRows === 0) {
+                throw new Error("No se encontró un estudiante con ese ID asociado a ese correo de tutor.");
             }
 
             return nuevaContrasena;
