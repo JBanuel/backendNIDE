@@ -346,8 +346,8 @@ export default class dbManagement {
         }
     }
 
-    static async generarNuevaContrasenaEstudiante(connection, idEstudiante, correoTutor) {
-        const nuevaContrasena = randomBytes(6).toString('hex'); 
+    static async generarNuevaContrasenaEstudiante(connection, idEstudiante) {
+        const nuevaContrasena = randomBytes(10).toString('hex'); 
         
         try { 
             const hash = await bcrypt.hash(nuevaContrasena, 7);
@@ -357,13 +357,13 @@ export default class dbManagement {
                 JOIN Estudiante e ON u_est.id = e.id
                 JOIN Usuario u_tutor ON e.id_tutor = u_tutor.id
                 SET u_est.contrasena = ? 
-                WHERE e.id = ? AND u_tutor.correo = ?
+                WHERE e.id = ?
             `;
             
-            const [result] = await connection.execute(query, [hash, idEstudiante, correoTutor]);
+            const [result] = await connection.execute(query, [hash, idEstudiante]);
             
             if (result.affectedRows === 0) {
-                throw new Error("No se encontró un estudiante con ese ID asociado a ese correo de tutor.");
+                throw new Error("No se encontró un estudiante con ese ID.");
             }
 
             return nuevaContrasena;

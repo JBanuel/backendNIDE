@@ -294,7 +294,7 @@ app.get('/dash/admin/usuariosAutorizados', async (req, res) => {
   }
 });
 
-app.delete('/dash/admin/eliminarUsuario', async (req, res) => {
+app.post('/dash/admin/eliminarUsuario', async (req, res) => {
   const { userId } = req.body; 
   let connection;
   try {
@@ -349,7 +349,7 @@ app.post('/juego/recuperacionContrasena', async (req, res) => {
 
   try {
     connection = await db.connect();
-    const nuevaContrasena = await db.generarNuevaContrasenaEstudiante(connection, idEstudiante, correoTutor);
+    const nuevaContrasena = await db.generarNuevaContrasenaEstudiante(connection, idEstudiante);
     
     const mailOptions = {
       from: `"Soporte Técnico NIDE" <${config.ES_EMAIL}>`, 
