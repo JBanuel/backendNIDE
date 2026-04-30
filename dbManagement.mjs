@@ -347,30 +347,40 @@ export default class dbManagement {
     }
 
     static async generarNuevaContrasenaEstudiante(connection, idEstudiante) {
-        const nuevaContrasena = randomBytes(10).toString('hex'); 
-        
-        try { 
-            const hash = await bcrypt.hash(nuevaContrasena, 7);
-            
-            const query = `
-                UPDATE Usuario u_est
-                JOIN Estudiante e ON u_est.id = e.id
-                JOIN Usuario u_tutor ON e.id_tutor = u_tutor.id
-                SET u_est.contrasena = ? 
-                WHERE e.id = ?
-            `;
-            
-            const [result] = await connection.execute(query, [hash, idEstudiante]);
-            
-            if (result.affectedRows === 0) {
-                throw new Error("No se encontró un estudiante con ese ID.");
-            }
+    const nuevaContrasena = randomBytes(10).toString('hex'); 
+    
+    try { 
+        const [rows] = await connection.execute(`
+            SELECT u_tutor.correo 
+            FROM Estudiante e
+            JOIN Usuario u_tutor ON e.id_tutor = u_tutor.id
+            WHERE e.id = ?
+        `, [idEstudiante]);
 
-            return nuevaContrasena;
-        } catch(err) {
-            throw err;
+        if (rows.length === 0) {
+            throw new Error("No se encontró un estudiante con ese ID o no tiene un tutor asociado.");
         }
+
+        const correoTutor = rows[0].correo;
+        const hash = await bcrypt.hash(nuevaContrasena, 7);
+        
+        const queryUpdate = `
+            UPDATE Usuario 
+            SET contrasena = ? 
+            WHERE id = ?
+        `;
+        
+        await connection.execute(queryUpdate, [hash, idEstudiante]);
+
+        return {
+            nuevaContrasena,
+            correoTutor
+        };
+
+    } catch(err) {
+        throw err;
     }
+}
 
     static async connect() {
         return await mysql.createConnection({

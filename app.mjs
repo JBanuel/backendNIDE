@@ -344,16 +344,17 @@ app.post('/dash/recuperacionContrasena', async (req, res) => {
 });
 
 app.post('/juego/recuperacionContrasena', async (req, res) => {
-  const { idEstudiante, correoTutor } = req.body;
+  const { idEstudiante } = req.body; 
   let connection;
 
   try {
     connection = await db.connect();
-    const nuevaContrasena = await db.generarNuevaContrasenaEstudiante(connection, idEstudiante);
+    
+    const { nuevaContrasena, correoTutor } = await db.generarNuevaContrasenaEstudiante(connection, idEstudiante);
     
     const mailOptions = {
       from: `"Soporte Técnico NIDE" <${config.ES_EMAIL}>`, 
-      to: correoTutor,
+      to: correoTutor, 
       subject: "Recuperación de Contraseña de Estudiante",
       html: `
         <div style="font-family: sans-serif; border: 1px solid #eee; padding: 20px;">
